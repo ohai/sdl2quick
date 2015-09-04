@@ -95,6 +95,7 @@ module SDL2::Q
   
   # ウィンドウを黒でクリアします。
   def clear_window
+    @@renderer.draw_color = BLACK
     @@renderer.clear
   end
 
@@ -125,6 +126,70 @@ module SDL2::Q
     end
     return @@textures[key]
   end
+
+  # 直線を描画する
+  #
+  # @param x1 [Integer] 始点のX座標
+  # @param y1 [Integer] 始点のY座標
+  # @param x2 [Integer] 終点のX座標
+  # @param y2 [Integer] 終点のY座標
+  # @param color [[Integer, Integer, Integer]] 色
+  def draw_line(x1, y1, x2, y2, color)
+    @@renderer.draw_color = color
+    @@renderer.draw_line(x1, y1, x2, y2)
+  end
+
+  # 塗り潰した四角形を描画する
+  #
+  # @param x [Integer] 四角形の左上のX座標
+  # @param y [Integer] 四角形の左上のY座標
+  # @param w [Integer] 四角形の横幅
+  # @param h [Integer] 四角形の高さ
+  # @param color [[Integer, Integer, Integer]] 色
+  def fill_rect(x, y, w, h, color)
+    @@renderer.draw_color = color
+    @@renderer.fill_rect(SDL2::Rect[x, y, w, h])
+  end
+
+  # 四角形を描画する
+  #
+  # @param x [Integer] 四角形の左上のX座標
+  # @param y [Integer] 四角形の左上のY座標
+  # @param w [Integer] 四角形の横幅
+  # @param h [Integer] 四角形の高さ
+  # @param color [[Integer, Integer, Integer]] 色
+  def draw_rect(x, y, w, h, color)
+    @@renderer.draw_color = color
+    @@renderer.draw_rect(SDL2::Rect[x, y, w, h])
+  end
+
+  # 点を描画する
+  #
+  # @param x [Integer] X座標
+  # @param y [Integer] Y座標
+  # @param color [[Integer, Integer, Integer]] 色
+  def draw_point(x, y, color)
+    @@renderer.draw_color = color
+    @@renderer.draw_point(x, y)
+  end
+
+  # 円を描画する
+  #
+  # @param x [Integer] 中心のX座標
+  # @param y [Integer] 中心のY座標
+  # @param radius [Integer] 半径
+  # @param color [[Integer, Integer, Integer]] 色
+  def draw_circle(x, y, radius, color)
+    @@renderer.draw_color = color
+    64.times do |i|
+      @@renderer.draw_line(x + radius*Math.cos(Math::PI/32*i),
+                           y + radius*Math.sin(Math::PI/32*i),
+                           x + radius*Math.cos(Math::PI/32*(i-1)),
+                           y + radius*Math.sin(Math::PI/32*(i-1)))
+    end
+    @@renderer.draw_point(x, y)
+  end
+
   # 文字列をウィンドウの (x, y) の位置に描画します。
   #
   # @param str [String] 描画する文字列
@@ -191,10 +256,13 @@ module SDL2::Q
   # @!endgroup
 
   WHITE = [255, 255, 255]
+  BLACK = [0, 0, 0]
   RED = [255, 0, 0]
   GREEN = [0, 255, 0]
   BLUE = [0, 0, 255]
-  BLACK = [0, 0, 0]
+  PURPLE = [255, 0, 255]
+  YELLOW = [255, 255, 0]
+  CYAN = [0, 255, 255]
 end
 
 
