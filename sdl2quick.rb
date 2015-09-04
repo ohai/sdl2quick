@@ -2,22 +2,33 @@
 require 'sdl2'
 require 'set'
 
+# @api private
 class FPSKeeper
-  def initialize(target_fps = 60)
+  def initialize(target_fps = 60, skip_limit=15, delay_accuracy = 10)
     @target_fps = target_fps
+    @skip_limit = skip_limit
+    @delay_accuracy = delay_accuracy
   end
 
   # タイマーをリセット。メインループの開始直前に呼びだす。
   def reset
     @old_ticks = get_ticks
+    @num_skips = 0
   end
 
   def wait_frame
     now_ticks = get_ticks
-    next_ticks = @old_ticks  + (1.0/@target_fps)
-    if next_ticks > now_ticks 
+    next_ticks = @old_ticks  + (1000.0/@target_fps)
+    printf("%f %f\n", next_ticks - @old_ticks,
+           next_ticks - now_ticks)
+    if next_ticks > now_ticks
+      yield
       wait_until(next_ticks)
       @old_ticks = next_ticks
+    elsif @num_skips > @skip_limit
+      yield
+      @num_skips = 0
+      @old_ticks = get_ticks
     else
       @old_ticks = now_ticks
     end
@@ -28,19 +39,27 @@ class FPSKeeper
   end
 
   def wait_until(ticks)
-    SDL2.delay(Integer(ticks - get_ticks))
+    d = ticks - get_ticks
+    if d < @delay_accuracy
+      while get_ticks < ticks
+        # do nothing
+      end
+    else
+      SDL2.delay(Integer(d)) if d > 0
+    end
   end
 end
 
 module SDL2::Q
   module_function
 
-  # @private
+  # @api private
+  # 初期化
   def init(title)
     SDL2.init(SDL2::INIT_EVERYTHING)
     @@window = SDL2::Window.create(title, 0, 0, 640, 480, 0)
     @@renderer = @@window.create_renderer(-1, 0)
-    @@fpskeeper = FPSKeeper.new
+    @@fpskeeper = FPSKeeper.new(30)
     @@title = title
     
     clear_window
@@ -64,19 +83,20 @@ module SDL2::Q
       end
       
       yield if block_given?
-      @@renderer.present
-      @@fpskeeper.wait_frame
+      @@fpskeeper.wait_frame { @@renderer.present }
     end
   end
 
-  # Window functions
+  # @!group Window
   
   # ウィンドウを黒でクリアします。
   def clear_window
     @@renderer.clear
   end
+
+  # @!endgroup
   
-  # Event functions
+  # @!group Input and Events
 
   # 指定したキーが押し下げられた時に true を返します。
   #
@@ -88,7 +108,10 @@ module SDL2::Q
     @@keydown.member?(SDL2::Key.keycode_from_name(keyname))
   end
 
-  # Message box functions
+  # @!endgroup
+
+  
+  # @!group Message box
 
   # モーダルメッセージボックスを表示します。
   #
@@ -109,6 +132,8 @@ module SDL2::Q
     title ||= @@title
     SDL2::MessageBox.show_simple_box(flag, title, message, nil)
   end
+
+  # @!endgroup
 end
 
 
