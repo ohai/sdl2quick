@@ -101,13 +101,47 @@ module SDL2::Q
 
   # 画像を (x, y) の位置に描画します。
   #
+  # * Q. 背景画像に使いたいので背景が透ける機能(カラーキー)を
+  #   無効にしたい
+  #   * A. colorkey: false としてください
+  # * Q. blend_mode のデフォルト値が "BLEND" なのは何故か
+  #   * A. カラーキーの実装に必要なのためです
+  # * Q. 機能が多すぎてややこしい
+  #   * A. 以下の example を参照してください。おおよそ
+  #        適切なデフォルトが設定されています。
+  #        教える方は簡単なほうから段階的に必要なものだけ教えてください
+  #        
   # @param image [String] 画像のファイル名
   # @param x [Integer] 描画位置の左上X座標
   # @param y [Integer] 描画位置の左上Y座標
-  def put_image(image, x: 0, y: 0, colorkey: false)
+  # @param blend_mode [String] "NONE", "BLEND", "ADD","MOD"のいずれか
+  # @param alpha [String] アルファ値
+  #
+  # @example
+  #
+  #    # 基本: ruby.png を (100, 100) に置く
+  #    put_image("ruby.png", x: 100, y: 100)
+  #    # 加算ブレンド:
+  #    put_image("ruby.png", x: 100, y: 100, blend_mode: "ADD")
+  #    # 画像にアルファ値 128 を指定してアルファブレンド:
+  #    put_image("ruby.png", x: 100, y: 100, alpha: 128)
+  def put_image(image, x: 0, y: 0, colorkey: true,
+                blend_mode: "BLEND", alpha: 255)
+
+    mode = BLENDMODE.fetch(blend_mode) {
+      raise 'blend_mode must be one of "NONE", "BLEND", "ADD", or "MOD"'
+    }
     texture = find_texture(image, colorkey)
+    texture.blend_mode = mode
+    texture.alpha_mod = alpha
     @@renderer.copy(texture, nil, SDL2::Rect[x, y, texture.w, texture.h])
   end
+
+  BLENDMODE = {"NONE" => SDL2::BlendMode::NONE,
+               "BLEND" => SDL2::BlendMode::BLEND,
+               "ADD" => SDL2::BlendMode::ADD,
+               "MOD" => SDL2::BlendMode::MOD,}
+  private_constant :BLENDMODE
   
   # @api private
   # 画像がすでに読み込まれていればそのテクスチャを返し、
