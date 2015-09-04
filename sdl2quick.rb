@@ -19,8 +19,6 @@ class FPSKeeper
   def wait_frame
     now_ticks = get_ticks
     next_ticks = @old_ticks  + (1000.0/@target_fps)
-    printf("%f %f\n", next_ticks - @old_ticks,
-           next_ticks - now_ticks)
     if next_ticks > now_ticks
       yield
       wait_until(next_ticks)
@@ -61,10 +59,13 @@ module SDL2::Q
     @@renderer = @@window.create_renderer(-1, 0)
     @@fpskeeper = FPSKeeper.new(30)
     @@title = title
+    SDL2::TTF.init
+    @@font = SDL2::TTF.open(FONT_PATH, 32)
     
     clear_window
   end
 
+  FONT_PATH = File.join(__dir__, "VL-Gothic-Regular.ttf")
   # メインループ。
   #
   # ブロック付きで呼び出すと毎ループごとにそのブロックが呼びだされます。
@@ -94,6 +95,19 @@ module SDL2::Q
     @@renderer.clear
   end
 
+  # 文字列をウィンドウの (x, y) の位置に描画します。
+  #
+  # @param str [String] 描画する文字列
+  # @param x [Integer] 描画文字列の左上X座標
+  # @param y [Integer] 描画文字列の左上Y座標
+  # @param color [Array<Integer>] 描画色
+  def text(str, x: 0, y: 0, color: WHITE)
+    surface = @@font.render_solid(str, color)
+    texture = @@renderer.create_texture_from(surface)
+    @@renderer.copy(texture, nil,
+                    SDL2::Rect.new(x, y, texture.w, texture.h)) 
+  end
+  
   # @!endgroup
   
   # @!group Input and Events
@@ -134,6 +148,12 @@ module SDL2::Q
   end
 
   # @!endgroup
+
+  WHITE = [255, 255, 255]
+  RED = [255, 0, 0]
+  GREEN = [0, 255, 0]
+  BLUE = [0, 0, 255]
+  BLACK = [0, 0, 0]
 end
 
 
