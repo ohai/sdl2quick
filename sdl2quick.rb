@@ -59,6 +59,9 @@ module SDL2::Q
     @@renderer = @@window.create_renderer(-1, 0)
     @@fpskeeper = FPSKeeper.new(30)
     @@title = title
+    
+    @@textures = Hash.new
+    
     SDL2::TTF.init
     @@font = SDL2::TTF.open(FONT_PATH, 32)
     
@@ -95,6 +98,33 @@ module SDL2::Q
     @@renderer.clear
   end
 
+  # 画像を (x, y) の位置に描画します。
+  #
+  # @param image [String] 画像のファイル名
+  # @param x [Integer] 描画位置の左上X座標
+  # @param y [Integer] 描画位置の左上Y座標
+  def put_image(image, x: 0, y: 0, colorkey: false)
+    texture = find_texture(image, colorkey)
+    @@renderer.copy(texture, nil, SDL2::Rect[x, y, texture.w, texture.h])
+  end
+  
+  # @api private
+  # 画像がすでに読み込まれていればそのテクスチャを返し、
+  # 読み込まれていなければ読み込んでからそのテクスチャを返す
+  def find_texture(image, colorkey)
+    key = [image, colorkey]
+    if !@@textures.has_key?(key)
+      if colorkey
+        surface = SDL2::Surface.load(image)
+        surface.color_key = surface.pixel(0, 0)
+        @@textures[key] = @@renderer.create_texture_from(surface)
+        surface.destroy
+      else
+        @@textures[key] = @@renderer.load_texture(image)
+      end
+    end
+    return @@textures[key]
+  end
   # 文字列をウィンドウの (x, y) の位置に描画します。
   #
   # @param str [String] 描画する文字列
