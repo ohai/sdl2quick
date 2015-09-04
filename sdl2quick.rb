@@ -34,14 +34,21 @@ end
 
 module SDL2::Q
   module_function
-  
-  def init
+
+  # @private
+  def init(title)
     SDL2.init(SDL2::INIT_EVERYTHING)
-    @@window = SDL2::Window.create("", 0, 0, 640, 480, 0)
+    @@window = SDL2::Window.create(title, 0, 0, 640, 480, 0)
     @@renderer = @@window.create_renderer(-1, 0)
     @@fpskeeper = FPSKeeper.new
+    @@title = title
+    
+    clear_window
   end
 
+  # メインループ。
+  #
+  # ブロック付きで呼び出すと毎ループごとにそのブロックが呼びだされます。
   def mainloop
     @@fpskeeper.reset
     
@@ -63,13 +70,44 @@ module SDL2::Q
   end
 
   # Window functions
+  
+  # ウィンドウを黒でクリアします。
   def clear_window
     @@renderer.clear
   end
   
   # Event functions
+
+  # 指定したキーが押し下げられた時に true を返します。
+  #
+  # @param keyname [String] キーの名前("ESCAPE"、"F" など)
+  #
+  # @example
+  #     keydown?("X")
   def keydown?(keyname)
     @@keydown.member?(SDL2::Key.keycode_from_name(keyname))
+  end
+
+  # Message box functions
+
+  # モーダルメッセージボックスを表示します。
+  #
+  # @param message [String] メッセージ
+  # @param title [String] メッセージボックスのウィンドウタイトル
+  #        (省略時はスクリプト名)
+  # @param type [String] メッセージボックスの種類
+  #        ("ERROR", "WARNING", "INFORMATION" のいずれか)
+  #
+  # @example
+  #     messagebox("こんにちは!")
+  def messagebox(message, title: nil, type: "INFORMATION")
+    flag = case type
+           when "INFORMATION"; SDL2::MessageBox::INFORMATION
+           when "ERROR"; SDL2::MessageBox::ERROR
+           when "WARNING"; SDL2::MessageBox::ERROR
+           end
+    title ||= @@title
+    SDL2::MessageBox.show_simple_box(flag, title, message, nil)
   end
 end
 
