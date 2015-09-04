@@ -144,6 +144,8 @@ module SDL2::Q
 
   # 指定したキーが押し下げられた時に true を返します。
   #
+  # この関数はキーリピートが有効です(つまりキーを押しっぱなしにすると
+  # リピート間隔ごとにこの関数は true を返します)。
   # @param keyname [String] キーの名前("ESCAPE"、"F" など)
   #
   # @example
@@ -152,8 +154,17 @@ module SDL2::Q
     @@keydown.member?(SDL2::Key.keycode_from_name(keyname))
   end
 
+  # 指定したキーが押し下げられた状態であるならば true を返します。
+  #
+  # @param keyname [String] キーの名前("ESCAPE"、"F" など)
+  #
+  # @example
+  #     keyperssed?("A")
+  def keypressed?(keyname)
+    SDL2::Key.pressed?(SDL2::Key::Scan.from_name(keyname))
+  end
+  
   # @!endgroup
-
   
   # @!group Message box
 
