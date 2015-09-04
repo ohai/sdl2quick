@@ -2,52 +2,6 @@
 require 'sdl2'
 require 'set'
 
-# @api private
-class FPSKeeper
-  def initialize(target_fps = 60, skip_limit=15, delay_accuracy = 10)
-    @target_fps = target_fps
-    @skip_limit = skip_limit
-    @delay_accuracy = delay_accuracy
-  end
-
-  # タイマーをリセット。メインループの開始直前に呼びだす。
-  def reset
-    @old_ticks = get_ticks
-    @num_skips = 0
-  end
-
-  def wait_frame
-    now_ticks = get_ticks
-    next_ticks = @old_ticks  + (1000.0/@target_fps)
-    if next_ticks > now_ticks
-      yield
-      wait_until(next_ticks)
-      @old_ticks = next_ticks
-    elsif @num_skips > @skip_limit
-      yield
-      @num_skips = 0
-      @old_ticks = get_ticks
-    else
-      @old_ticks = now_ticks
-    end
-  end
-
-  def get_ticks
-    SDL2.get_ticks.to_f
-  end
-
-  def wait_until(ticks)
-    d = ticks - get_ticks
-    if d < @delay_accuracy
-      while get_ticks < ticks
-        # do nothing
-      end
-    else
-      SDL2.delay(Integer(d)) if d > 0
-    end
-  end
-end
-
 module SDL2::Q
   module_function
 
@@ -61,6 +15,7 @@ module SDL2::Q
     @@title = title
     
     @@textures = Hash.new
+    @@cell_definitions = Hash.new
     
     SDL2::TTF.init
     @@font = SDL2::TTF.open(FONT_PATH, 32)
@@ -101,13 +56,13 @@ module SDL2::Q
 
   # 画像を (x, y) の位置に描画します。
   #
-  # * Q. 背景画像に使いたいので背景が透ける機能(カラーキー)を
+  # * Q: 背景画像に使いたいので背景が透ける機能(カラーキー)を
   #   無効にしたい
-  #   * A. colorkey: false としてください
-  # * Q. blend_mode のデフォルト値が "BLEND" なのは何故か
-  #   * A. カラーキーの実装に必要なのためです
-  # * Q. 機能が多すぎてややこしい
-  #   * A. 以下の example を参照してください。おおよそ
+  #   * A: colorkey: false としてください
+  # * Q: blend_mode のデフォルト値が "BLEND" なのは何故か
+  #   * A: カラーキーの実装に必要なのためです
+  # * Q: 機能が多すぎてややこしい
+  #   * A: 以下の example を参照してください。おおよそ
   #        適切なデフォルトが設定されています。
   #        教える方は簡単なほうから段階的に必要なものだけ教えてください
   #        
@@ -127,14 +82,10 @@ module SDL2::Q
   #    put_image("ruby.png", x: 100, y: 100, alpha: 128)
   def put_image(image, x: 0, y: 0, colorkey: true,
                 blend_mode: "BLEND", alpha: 255)
-
-    mode = BLENDMODE.fetch(blend_mode) {
-      raise 'blend_mode must be one of "NONE", "BLEND", "ADD", or "MOD"'
-    }
     texture = find_texture(image, colorkey)
-    texture.blend_mode = mode
-    texture.alpha_mod = alpha
-    @@renderer.copy(texture, nil, SDL2::Rect[x, y, texture.w, texture.h])
+    
+    put_from_texture(texture, SDL2::Rect[0, 0, texture.w, texture.h],
+                     x, y, colorkey, blend_mode, alpha)
   end
 
   BLENDMODE = {"NONE" => SDL2::BlendMode::NONE,
@@ -142,11 +93,60 @@ module SDL2::Q
                "ADD" => SDL2::BlendMode::ADD,
                "MOD" => SDL2::BlendMode::MOD,}
   private_constant :BLENDMODE
+
+  # セル(一枚の画像を小さい長方形の画像に分割して一枚の画像と
+  # 同様に扱えるようにしたもの)を定義します。
+  #
+  # image で指定した画像ファイルを cellwidth x cellheight の
+  # 画像に分割して、cell_putで分割された画像を描画することが
+  # できます。cell_putでは、ファイル名とセルIDで画像をしていします。
+  # セルIDは以下のように付番されます。
+  #
+  #      |---|---|---|---|
+  #      | 0 | 1 | 2 | 3 |
+  #      +---+---+---+---+
+  #      | 4 | 5 | 6 | 7 |
+  #      +---+---+---+---+
+  #      | 8 | 9 |10 |11 |
+  #      +---+---+---+---+
+  #      
+  # 画像の幅ががちょうど cellwidth の倍数でない場合には、
+  # 画像の右端のあまりの部分が無視されます。
+  # 画像の高さとcellheight でも同様に画像の下端が無視されます。
+  #
+  # @param image [String] 画像ファイル名
+  # @param cellwidth [Integer] 各セルの幅
+  # @param cellheight [Integer] 各セルの高さ
+  def define_cells(image, cellwidth, cellheight)
+    texture = find_texture(image, true)
+    # TODO: Check redifinition
+    @@cell_definitions[image] = CellDefinition.new(texture, cellwidth, cellheight)
+  end
+
+  def put_cell(image, cellid, x: 0, y: 0, colorkey: true,
+               blend_mode: "BLEND", alpha: 255)
+    texture = find_texture(image, colorkey)
+    cell_definition = @@cell_definitions.fetch(image) {
+      raise "Cell of \"#{image}\" is not defined yet "
+    }
+    rect = cell_definition.get_rect(cellid)
+    put_from_texture(texture, rect, x, y, colorkey, blend_mode, alpha)
+  end
+
   
-  # @api private
+  def put_from_texture(texture, srcrect, x, y, colorkey,
+                       blend_mode, alpha)
+    mode = BLENDMODE.fetch(blend_mode) {
+      raise 'blend_mode must be one of "NONE", "BLEND", "ADD", or "MOD"'
+    }
+    texture.blend_mode = mode
+    texture.alpha_mod = alpha
+    @@renderer.copy(texture, srcrect, SDL2::Rect[x, y, srcrect.w, srcrect.h])
+  end
+  
   # 画像がすでに読み込まれていればそのテクスチャを返し、
   # 読み込まれていなければ読み込んでからそのテクスチャを返す
-  def find_texture(image, colorkey)
+  private def find_texture(image, colorkey)
     key = [image, colorkey]
     if !@@textures.has_key?(key)
       if colorkey
@@ -297,6 +297,72 @@ module SDL2::Q
   PURPLE = [255, 0, 255]
   YELLOW = [255, 255, 0]
   CYAN = [0, 255, 255]
+
+  class CellDefinition
+    def initialize(texture, cellwidth, cellheight)
+      @cellwidth = cellwidth
+      @cellheight = cellheight
+      @xsize = texture.w / cellwidth
+      @ysize = texture.h / cellheight
+    end
+
+    def get_rect(id)
+      ny = id / @xsize
+      nx = id % @xsize
+      if ny >= @ysize
+        raise "cellid #{id} is out of range"
+      end
+      return SDL2::Rect[nx*@cellwidth, ny*@cellheight, @cellwidth, @cellheight]
+    end
+  end
+  private_constant :CellDefinition
+
+  # @api private
+  class FPSKeeper
+    def initialize(target_fps = 60, skip_limit=15, delay_accuracy = 10)
+      @target_fps = target_fps
+      @skip_limit = skip_limit
+      @delay_accuracy = delay_accuracy
+    end
+
+    # タイマーをリセット。メインループの開始直前に呼びだす。
+    def reset
+      @old_ticks = get_ticks
+      @num_skips = 0
+    end
+
+    def wait_frame
+      now_ticks = get_ticks
+      next_ticks = @old_ticks  + (1000.0/@target_fps)
+      if next_ticks > now_ticks
+        yield
+        wait_until(next_ticks)
+        @old_ticks = next_ticks
+      elsif @num_skips > @skip_limit
+        yield
+        @num_skips = 0
+        @old_ticks = get_ticks
+      else
+        @old_ticks = now_ticks
+      end
+    end
+
+    def get_ticks
+      SDL2.get_ticks.to_f
+    end
+
+    def wait_until(ticks)
+      d = ticks - get_ticks
+      if d < @delay_accuracy
+        while get_ticks < ticks
+          # do nothing
+        end
+      else
+        SDL2.delay(Integer(d)) if d > 0
+      end
+    end
+  end
+  private_constant :FPSKeeper
 end
 
 
