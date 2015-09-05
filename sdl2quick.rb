@@ -24,6 +24,8 @@ module SDL2::Q
   end
 
   FONT_PATH = File.join(__dir__, "VL-Gothic-Regular.ttf")
+  private_constant :FONT_PATH
+  
   # メインループ。
   #
   # ブロック付きで呼び出すと毎ループごとにそのブロックが呼びだされます。
@@ -46,7 +48,7 @@ module SDL2::Q
     end
   end
 
-  # @!group Window
+  # @!group Window drawing
   
   # ウィンドウを黒でクリアします。
   def clear_window
@@ -57,7 +59,10 @@ module SDL2::Q
   # 画像をウィンドウの (x, y, w, h) の領域に描画します。
   #
   # w, h を省略したときは画像の大きさが使われます。
-  # 
+  #
+  # 画像を回転させたときには描画領域にちょうどおさまるように
+  # 大きさを調整します。
+  #
   # * Q: 背景画像に使いたいので背景が透ける機能(カラーキー)を
   #   無効にしたい
   #   * A: colorkey: false としてください
@@ -75,7 +80,7 @@ module SDL2::Q
   # @param h [Integer] 描画領域の高さ
   # @param blend_mode [String] "NONE", "BLEND", "ADD","MOD"のいずれか
   # @param alpha [String] アルファ値
-  # @param angle [Float] 回転角度(単位は度数)
+  # @param angle [Float] 回転角度(時計回り、単位は度数)
   # @param flip_vertically [Boolean] true で画像を上下反転する
   # @param flip_horizontally [Boolean] true で画像を左右反転する
   # @example
@@ -88,6 +93,8 @@ module SDL2::Q
   #    put_image("ruby.png", x: 100, y: 100, alpha: 128)
   #    # 画像を縦横に拡大して描画
   #    put_image("ruby.png", x: 100, y: 100, w: 128, h: 128)
+  #    # 上下反転させてさらに回転
+  #    put_image("ruby.png", x: 100, y: 100, angle: 60, flip_vertically: true)
   def put_image(image, x: 0, y: 0, w: nil, h: nil, colorkey: true,
                 blend_mode: "BLEND", alpha: 255, angle: 0,
                 flip_vertically: false, flip_horizontally: false)
