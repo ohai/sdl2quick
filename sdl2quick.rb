@@ -18,7 +18,8 @@ module SDL2::Q
     @@cell_definitions = Hash.new
     
     SDL2::TTF.init
-    @@font = SDL2::TTF.open(FONT_PATH, 32)
+    @@fonts = Hash.new
+    set_fontsize(32)
     
     clear_window
   end
@@ -284,6 +285,16 @@ module SDL2::Q
     texture = @@renderer.create_texture_from(surface)
     @@renderer.copy(texture, nil,
                     SDL2::Rect.new(x, y, texture.w, texture.h)) 
+  end
+
+  # {.text} で用いるフォントのサイズを変更します。
+  #
+  # @param size [Integer] サイズ
+  # @return void
+  def set_fontsize(size)
+    @@font = @@fonts.fetch(size) {
+      @@fonts[size] = SDL2::TTF.open(FONT_PATH, size)
+    }
   end
   
   # @!endgroup
