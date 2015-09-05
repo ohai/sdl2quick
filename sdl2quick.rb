@@ -97,19 +97,23 @@ module SDL2::Q
   # セル(一枚の画像を小さい長方形の画像に分割して一枚の画像と
   # 同様に扱えるようにしたもの)を定義します。
   #
+  # 定義した cell は {.cell_put} でウインドウに描画できます。
+  # 
   # image で指定した画像ファイルを cellwidth x cellheight の
   # 画像に分割して、cell_putで分割された画像を描画することが
   # できます。cell_putでは、ファイル名とセルIDで画像をしていします。
   # セルIDは以下のように付番されます。
   #
-  #      |---|---|---|---|
+  #      |---|---|---|---|-> X
   #      | 0 | 1 | 2 | 3 |
   #      +---+---+---+---+
   #      | 4 | 5 | 6 | 7 |
   #      +---+---+---+---+
   #      | 8 | 9 |10 |11 |
   #      +---+---+---+---+
-  #      
+  #      |
+  #      v
+  #      Y
   # 画像の幅ががちょうど cellwidth の倍数でない場合には、
   # 画像の右端のあまりの部分が無視されます。
   # 画像の高さとcellheight でも同様に画像の下端が無視されます。
@@ -123,6 +127,17 @@ module SDL2::Q
     @@cell_definitions[image] = CellDefinition.new(texture, cellwidth, cellheight)
   end
 
+  # {.define_cells} で定義したセルをウィンドウに描画します。
+  #
+  # image で画像のファイル名を、cellid でセルIDを指定します。
+  # それ以外の引数の意味は {.put_image} と同じです。
+  # 
+  # @param image [String] 画像のファイル名
+  # @param x [Integer] 描画位置の左上X座標
+  # @param y [Integer] 描画位置の左上Y座標
+  # @param blend_mode [String] "NONE", "BLEND", "ADD","MOD"のいずれか
+  # @param alpha [String] アルファ値
+  #
   def put_cell(image, cellid, x: 0, y: 0, colorkey: true,
                blend_mode: "BLEND", alpha: 255)
     texture = find_texture(image, colorkey)
