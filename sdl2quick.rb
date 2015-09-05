@@ -24,6 +24,7 @@ module SDL2::Q
     SDL2::Mixer.init(SDL2::Mixer::INIT_OGG|SDL2::Mixer::INIT_MP3)
     SDL2::Mixer.open(44100)
     @@musics = Hash.new
+    @@chunks = Hash.new
     
     clear_window
   end
@@ -398,11 +399,11 @@ module SDL2::Q
 
   # BGMの演奏を止めます。
   # 
-  # @param fade_out [Integer] フェイドアウトの時間(ミリ秒)。
+  # @param fadeout [Integer] フェイドアウトの時間(ミリ秒)。
   #        0 だとフェイドアウトなしで演奏を停止する。
   # @return [void]
-  def stop_bgm(fade_out: 0)
-    SDL2::Mixer::MusicChannel.fade_out(fade_out)
+  def stop_bgm(fadeout: 0)
+    SDL2::Mixer::MusicChannel.fade_out(fadeout)
   end
   
   private def find_music(file)
@@ -410,7 +411,40 @@ module SDL2::Q
       @@musics[file] = SDL2::Mixer::Music.load(file)
     }
   end
- 
+
+  # 「効果音」の演奏を開始します。
+  #
+  # 演奏はファイルの最後まで到達した時点で終了します。
+  #
+  # 効果音は8つまで同時に演奏できます。
+  # すでに8つ演奏されている場合は演奏しません。
+  # このような事態を避けるためにチャンネルを指定することができます。
+  # 「チャンネル」とは効果音の演奏経路で、同じチャンネルで新たな
+  # 演奏をスタートさせると以前に演奏していたものは停止してから
+  # 演奏が開始します。
+  #
+  # 音声ファイルとしては ogg や wave を使ってください。
+  #
+  # @param soundfile [String] 音声ファイル名
+  # @param channel [Integer, nil] 演奏するチャンネル
+  #        詳しくは上の解説参照
+  # @return [void]
+  def play_sound(soundfile, channel: nil)
+    SDL2::Mixer::Channels.play(channel || -1, find_chunk(soundfile), 0, -1)
+  end
+
+  # 「効果音」の演奏をすべて停止します。
+  #
+  # @return [void]
+  def halt_sound
+    SDL2::Mixer::Channels.halt(-1)
+  end
+  
+  private def find_chunk(soundfile)
+    @@chunks.fetch(soundfile) {
+      @@chunks[soundfile] = SDL2::Mixer::Chunk.load(soundfile)
+    }
+  end
   # @!endgroup
 
   class CellDefinition
