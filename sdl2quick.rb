@@ -322,8 +322,22 @@ module SDL2::Q
   def keypressed?(keyname)
     SDL2::Key.pressed?(SDL2::Key::Scan.from_name(keyname))
   end
-  
-  # @!endgroup
+
+  # 繋っているジョイスティックの数を返します。
+  #
+  # @note プログラム起動中にジョイスティックを抜き差ししないでください。
+  # 
+  # @return [Integer]
+  # @example
+  #
+  #      if num_joysticks < 2
+  #         messagebox "このゲームにはパッドが2個必要です"
+  #         exit
+  #      end
+  #
+  def num_joysticks
+    SDL2::Joystick.num_connected_joysticks
+  end
   
   # @!group Message box
 
