@@ -54,8 +54,10 @@ module SDL2::Q
     @@renderer.clear
   end
 
-  # 画像を (x, y) の位置に描画します。
+  # 画像をウィンドウの (x, y, w, h) の領域に描画します。
   #
+  # w, h を省略したときは画像の大きさが使われます。
+  # 
   # * Q: 背景画像に使いたいので背景が透ける機能(カラーキー)を
   #   無効にしたい
   #   * A: colorkey: false としてください
@@ -67,11 +69,15 @@ module SDL2::Q
   #        教える方は簡単なほうから段階的に必要なものだけ教えてください
   #        
   # @param image [String] 画像のファイル名
-  # @param x [Integer] 描画位置の左上X座標
-  # @param y [Integer] 描画位置の左上Y座標
+  # @param x [Integer] 描画領域の左上X座標
+  # @param y [Integer] 描画領域の左上Y座標
+  # @param w [Integer] 描画領域の幅
+  # @param h [Integer] 描画領域の高さ
   # @param blend_mode [String] "NONE", "BLEND", "ADD","MOD"のいずれか
   # @param alpha [String] アルファ値
-  #
+  # @param angle [Float] 回転角度(単位は度数)
+  # @param flip_vertically [Boolean] true で画像を上下反転する
+  # @param flip_horizontally [Boolean] true で画像を左右反転する
   # @example
   #
   #    # 基本: ruby.png を (100, 100) に置く
@@ -80,12 +86,18 @@ module SDL2::Q
   #    put_image("ruby.png", x: 100, y: 100, blend_mode: "ADD")
   #    # 画像にアルファ値 128 を指定してアルファブレンド:
   #    put_image("ruby.png", x: 100, y: 100, alpha: 128)
-  def put_image(image, x: 0, y: 0, colorkey: true,
-                blend_mode: "BLEND", alpha: 255)
+  #    # 画像を縦横に拡大して描画
+  #    put_image("ruby.png", x: 100, y: 100, w: 128, h: 128)
+  def put_image(image, x: 0, y: 0, w: nil, h: nil, colorkey: true,
+                blend_mode: "BLEND", alpha: 255, angle: 0,
+                flip_vertically: false, flip_horizontally: false)
     texture = find_texture(image, colorkey)
+    w ||= texture.w
+    h ||= texture.h
     
-    put_from_texture(texture, SDL2::Rect[0, 0, texture.w, texture.h],
-                     x, y, colorkey, blend_mode, alpha)
+    put_from_texture(texture, nil, SDL2::Rect[x, y, w, h],
+                     blend_mode, alpha, angle,
+                     flip_vertically, flip_horizontally)
   end
 
   BLENDMODE = {"NONE" => SDL2::BlendMode::NONE,
@@ -131,32 +143,47 @@ module SDL2::Q
   #
   # image で画像のファイル名を、cellid でセルIDを指定します。
   # それ以外の引数の意味は {.put_image} と同じです。
-  # 
+  #
   # @param image [String] 画像のファイル名
-  # @param x [Integer] 描画位置の左上X座標
-  # @param y [Integer] 描画位置の左上Y座標
+  # @param cellid [Integer] セルID
+  # @param x [Integer] 描画領域の左上X座標
+  # @param y [Integer] 描画領域の左上Y座標
+  # @param w [Integer] 描画領域の幅
+  # @param h [Integer] 描画領域の高さ
   # @param blend_mode [String] "NONE", "BLEND", "ADD","MOD"のいずれか
   # @param alpha [String] アルファ値
-  #
-  def put_cell(image, cellid, x: 0, y: 0, colorkey: true,
-               blend_mode: "BLEND", alpha: 255)
+  # @param angle [Float] 回転角度(単位は度数)
+  # @param flip_vertically [Boolean] true で画像を上下反転する
+  # @param flip_horizontally [Boolean] true で画像を左右反転する
+  def put_cell(image, cellid, x: 0, y: 0, w: nil, h: nil, colorkey: true,
+               blend_mode: "BLEND", alpha: 255, angle: 0,
+               flip_vertically: false, flip_horizontally: false)
     texture = find_texture(image, colorkey)
     cell_definition = @@cell_definitions.fetch(image) {
       raise "Cell of \"#{image}\" is not defined yet "
     }
     rect = cell_definition.get_rect(cellid)
-    put_from_texture(texture, rect, x, y, colorkey, blend_mode, alpha)
+    w ||= rect.w
+    h ||= rect.h
+    put_from_texture(texture, rect, SDL2::Rect[x, y, w, h],
+                     blend_mode, alpha, angle,
+                     flip_vertically, flip_horizontally)
   end
 
   
-  def put_from_texture(texture, srcrect, x, y, colorkey,
-                       blend_mode, alpha)
+  private def put_from_texture(texture, srcrect, dstrect,
+                               blend_mode, alpha, angle,
+                               flip_vertically, flip_horizontally)
     mode = BLENDMODE.fetch(blend_mode) {
       raise 'blend_mode must be one of "NONE", "BLEND", "ADD", or "MOD"'
     }
     texture.blend_mode = mode
     texture.alpha_mod = alpha
-    @@renderer.copy(texture, srcrect, SDL2::Rect[x, y, srcrect.w, srcrect.h])
+    flip = 0
+    flip |= SDL2::Renderer::FLIP_VERTICAL if flip_vertically
+    flip |= SDL2::Renderer::FLIP_HORIZONTAL if flip_horizontally
+    
+    @@renderer.copy_ex(texture, srcrect, dstrect, angle, nil, flip)
   end
   
   # 画像がすでに読み込まれていればそのテクスチャを返し、
