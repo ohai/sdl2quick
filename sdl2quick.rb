@@ -20,6 +20,10 @@ module SDL2::Q
     SDL2::TTF.init
     @@fonts = Hash.new
     set_fontsize(32)
+
+    SDL2::Mixer.init(SDL2::Mixer::INIT_OGG|SDL2::Mixer::INIT_MP3)
+    SDL2::Mixer.open(44100)
+    @@musics = Hash.new
     
     clear_window
   end
@@ -290,13 +294,22 @@ module SDL2::Q
   # {.text} で用いるフォントのサイズを変更します。
   #
   # @param size [Integer] サイズ
-  # @return void
+  # @return [void]
   def set_fontsize(size)
     @@font = @@fonts.fetch(size) {
       @@fonts[size] = SDL2::TTF.open(FONT_PATH, size)
     }
   end
-  
+
+  WHITE = [255, 255, 255]
+  BLACK = [0, 0, 0]
+  RED = [255, 0, 0]
+  GREEN = [0, 255, 0]
+  BLUE = [0, 0, 255]
+  PURPLE = [255, 0, 255]
+  YELLOW = [255, 255, 0]
+  CYAN = [0, 255, 255]
+
   # @!endgroup
   
   # @!group Input and Events
@@ -363,14 +376,42 @@ module SDL2::Q
 
   # @!endgroup
 
-  WHITE = [255, 255, 255]
-  BLACK = [0, 0, 0]
-  RED = [255, 0, 0]
-  GREEN = [0, 255, 0]
-  BLUE = [0, 0, 255]
-  PURPLE = [255, 0, 255]
-  YELLOW = [255, 255, 0]
-  CYAN = [0, 255, 255]
+  # @!group Sound
+  
+  # BGMを演奏開始します。
+  #
+  # 別のBGMを演奏している状態でこれを呼ぶと
+  # そちらの演奏は停止します。
+  #
+  # ogg や wave を使ってください。mp3もいけると思いますが
+  # うまくいかない場合は ogg に変換して使ってください。
+  # 
+  # @param musicfile [String] 音楽ファイル名
+  # @param loop [Integer, "FOREVER"] ループ回数。"FOREVER"でずっと繰り返し。
+  # @param fadein [Integer] フェイドインの時間(ミリ秒)。
+  #        0 だとフェイドインなしで演奏開始する。
+  # @return [void]
+  def play_bgm(musicfile, loop = "FOREVER", fadein: 0)
+    loop = -1 if loop == "FOREVER"
+    SDL2::Mixer::MusicChannel.fade_in(find_music(musicfile), loop, 0)
+  end
+
+  # BGMの演奏を止めます。
+  # 
+  # @param fade_out [Integer] フェイドアウトの時間(ミリ秒)。
+  #        0 だとフェイドアウトなしで演奏を停止する。
+  # @return [void]
+  def stop_bgm(fade_out: 0)
+    SDL2::Mixer::MusicChannel.fade_out(fade_out)
+  end
+  
+  private def find_music(file)
+    @@musics.fetch(file) {
+      @@musics[file] = SDL2::Mixer::Music.load(file)
+    }
+  end
+ 
+  # @!endgroup
 
   class CellDefinition
     def initialize(texture, cellwidth, cellheight)
@@ -391,7 +432,6 @@ module SDL2::Q
   end
   private_constant :CellDefinition
 
-  # @api private
   class FPSKeeper
     def initialize(target_fps = 60, skip_limit=15, delay_accuracy = 10)
       @target_fps = target_fps
