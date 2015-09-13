@@ -10,6 +10,8 @@ SDL2 のラッパー。
 
 LGPL-3 or later.
 
+VL-Gothic-Regular.ttf については copyright-VLGothic を参照してください。
+
 ## URL
 https://github.com/ohai/sdl2quick
 
