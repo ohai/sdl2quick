@@ -9,7 +9,10 @@ module SDL2::Q
   # 初期化
   def init(title)
     SDL2.init(SDL2::INIT_EVERYTHING)
-    @@window = SDL2::Window.create(title, 0, 0, 640, 480, 0)
+    @@window = SDL2::Window.create(title,
+                                   SDL2::Window::POS_CENTERED,
+                                   SDL2::Window::POS_CENTERED,
+                                   640, 480, 0)
     @@renderer = @@window.create_renderer(-1, 0)
     @@fpskeeper = FPSKeeper.new(30)
     @@title = title
