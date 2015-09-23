@@ -19,6 +19,10 @@ module SDL2::Q
     
     @@textures = Hash.new
     @@cell_definitions = Hash.new
+
+    @@keydown = Set.new
+    @@joysticks = nil
+    @@joybutton_down = Set.new
     
     SDL2::TTF.init
     @@fonts = Hash.new
@@ -43,13 +47,16 @@ module SDL2::Q
     @@fpskeeper.reset
     
     loop do
-      @@keydown = Set.new
+      @@keydown.clear
+      @@joybutton_down.clear
       while event = SDL2::Event.poll
         case event
         when SDL2::Event::Quit
           exit
         when SDL2::Event::KeyDown
           @@keydown.add(event.sym)
+        when SDL2::Event::JoyButtonDown
+          @@joybutton_down.add([event.which, event.button])
         end
       end
       
@@ -366,7 +373,99 @@ module SDL2::Q
   def num_joysticks
     SDL2::Joystick.num_connected_joysticks
   end
+
+  # ジョイスティックを準備します。
+  #
+  # ジョイスティックを使うゲームを作るためには、この関数を
+  # {.mainloop}を呼ぶ前に呼びだしてください。
+  #
+  # @param num_required [Integer] 必要なジョイスティックの数
+  # 
+  # @return [void]
+  #
+  # @note プログラムを動かしている間はジョイスティックの抜き差しを
+  #       してはいけません
+  def required_joysticks(num_required)
+    raise "You cannot call required_joysticks twice" unless @@joysticks.nil?
+    raise "#{num_joysticks} joysticks are required, but not connected" if num_required < num_joysticks
+    
+    @@joysticks = Array.new(num_joysticks){|n| SDL2::Joystick.open(n) }
+  end
+
+  # ジョイスティックのボタン数を返します。
+  #
+  # この関数は {.required_joysticks} を呼びだした後にしか使えません。
+  #
+  # @param id [Integer] ジョイスティクID、0から「接続しているジョイスティック数-1」までの整数
+  # @return [Integer]
+  def num_joystick_buttons(id: 0)
+    @@joysticks[id].num_buttons
+  end
+
+  # ジョイスティックの十字キーX方向の状態を返します。
+  #
+  # この関数は {.required_joysticks} を呼びだした後にしか使えません。
+  #
+  # @param id [Integer] ジョイスティクID、0から「接続しているジョイスティック数-1」までの整数
+  # @return [Integer] 右を押しているなら1を、左を押しているなら-1を、どちらでもないなら0を返します。
+  def joyhat_x(id: 0)
+    joystick = @@joysticks[id]
+    if joystick.num_hats > 0
+      return 1 if (joystick.hat(0) & SDL2::Joystick::RIGTH) != 0
+      return -1 if (joystick.hat(0) & SDL2::Joystick::LEFT) != 0
+      return 0
+    else
+      return 1 if joystick.axis(0) > JOYAXIS_XY_THRESHOLD
+      return -1 if joystick.axis(0) < -JOYAXIS_XY_THRESHOLD
+      return 0
+    end
+  end
+
+  JOYAXIS_XY_THRESHOLD = 10000; private_constant :JOYAXIS_XY_THRESHOLD
   
+  # ジョイスティックの十字キーY方向の状態を返します。
+  #
+  # この関数は {.required_joysticks} を呼びだした後にしか使えません。
+  #
+  # @param id [Integer] ジョイスティクID、0から「接続しているジョイスティック数-1」までの整数
+  # @return [Integer] 下を押しているなら1を、上を押しているなら-1を、どちらでもないなら0を返します。
+  def joyhat_y(id: 0)
+    joystick = @@joysticks[id]
+    
+    if joystick.num_hats > 0
+      return 1 if (joystick.hat(0) & SDL2::Joystick::DOWN) != 0
+      return -1 if (joystick.hat(0) & SDL2::Joystick::UP) != 0
+      return 0
+    else
+      return 1 if joystick.axis(1) > JOYAXIS_XY_THRESHOLD
+      return -1 if joystick.axis(1) < -JOYAXIS_XY_THRESHOLD
+      return 0
+    end
+  end
+
+  # ジョイスティックのボタンが押されているならば true を返します。
+  #
+  # この関数は {.required_joysticks} を呼びだした後にしか使えません。
+  #
+  # @param button [Integer] ボタンのID、0から「ジョイステイック上にあるボタン数-1」までの整数
+  # @param id [Integer] ジョイスティクID、0から「接続しているジョイスティック数-1」までの整数
+  def joybutton_pressed?(button, id: 0)
+    @@joysticks[id].button(button)
+  end
+
+  # ジョイスティックのボタンがが押し下げられた時に true を返します。
+  #
+  # この関数は {.required_joysticks} を呼びだした後にしか使えません。
+  # この関数は {.joybutton_pressed?} と異なり押し下げられたフレームのみ true を返します。
+  # 
+  # @param button [Integer] ボタンのID、0から「ジョイステイック上にあるボタン数-1」までの整数
+  # @param id [Integer] ジョイスティクID、0から「接続しているジョイスティック数-1」までの整数
+  def joybutton_down?(button, id: 0)
+    @@joybutton_down.member?([id, button])
+  end
+
+  # @!endgroup
+
   # @!group Message box
 
   # モーダルメッセージボックスを表示します。
