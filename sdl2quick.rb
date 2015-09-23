@@ -570,8 +570,14 @@ module SDL2::Q
     @@window.title = title
   end
   
-  # TODO:
-  # resize_window
+  # ウインドウサイズを変更します。
+  #
+  # @param w [Integer] ウィンドウ幅
+  # @param h [Integer] ウインドウ高さ
+  # @return [void]
+  def window_size(w, h)
+    @@window.size = [w, h]
+  end
   
   # @!endgroup
   
