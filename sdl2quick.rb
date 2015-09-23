@@ -38,6 +38,7 @@ module SDL2::Q
   # メインループ。
   #
   # ブロック付きで呼び出すと毎ループごとにそのブロックが呼びだされます。
+  # @return [void]
   def mainloop
     @@fpskeeper.reset
     
@@ -60,6 +61,7 @@ module SDL2::Q
   # @!group Window drawing
   
   # ウィンドウを黒でクリアします。
+  # @return [void]
   def clear_window
     @@renderer.draw_color = BLACK
     @@renderer.clear
@@ -92,6 +94,7 @@ module SDL2::Q
   # @param angle [Float] 回転角度(時計回り、単位は度数)
   # @param flip_vertically [Boolean] true で画像を上下反転する
   # @param flip_horizontally [Boolean] true で画像を左右反転する
+  # @return [void]
   # @example
   #
   #    # 基本: ruby.png を (100, 100) に置く
@@ -149,6 +152,7 @@ module SDL2::Q
   # @param image [String] 画像ファイル名
   # @param cellwidth [Integer] 各セルの幅
   # @param cellheight [Integer] 各セルの高さ
+  # @return [void]
   def define_cells(image, cellwidth, cellheight)
     texture = find_texture(image, true)
     # TODO: Check redifinition
@@ -171,6 +175,7 @@ module SDL2::Q
   # @param angle [Float] 回転角度(単位は度数)
   # @param flip_vertically [Boolean] true で画像を上下反転する
   # @param flip_horizontally [Boolean] true で画像を左右反転する
+  # @return [void]
   def put_cell(image, cellid, x: 0, y: 0, w: nil, h: nil, colorkey: true,
                blend_mode: "BLEND", alpha: 255, angle: 0,
                flip_vertically: false, flip_horizontally: false)
@@ -226,6 +231,7 @@ module SDL2::Q
   # @param x2 [Integer] 終点のX座標
   # @param y2 [Integer] 終点のY座標
   # @param color [[Integer, Integer, Integer]] 色
+  # @return [void]
   def draw_line(x1, y1, x2, y2, color)
     @@renderer.draw_color = color
     @@renderer.draw_line(x1, y1, x2, y2)
@@ -238,6 +244,7 @@ module SDL2::Q
   # @param w [Integer] 四角形の横幅
   # @param h [Integer] 四角形の高さ
   # @param color [[Integer, Integer, Integer]] 色
+  # @return [void]
   def fill_rect(x, y, w, h, color)
     @@renderer.draw_color = color
     @@renderer.fill_rect(SDL2::Rect[x, y, w, h])
@@ -250,6 +257,7 @@ module SDL2::Q
   # @param w [Integer] 四角形の横幅
   # @param h [Integer] 四角形の高さ
   # @param color [[Integer, Integer, Integer]] 色
+  # @return [void]
   def draw_rect(x, y, w, h, color)
     @@renderer.draw_color = color
     @@renderer.draw_rect(SDL2::Rect[x, y, w, h])
@@ -260,6 +268,7 @@ module SDL2::Q
   # @param x [Integer] X座標
   # @param y [Integer] Y座標
   # @param color [[Integer, Integer, Integer]] 色
+  # @return [void]
   def draw_point(x, y, color)
     @@renderer.draw_color = color
     @@renderer.draw_point(x, y)
@@ -271,6 +280,7 @@ module SDL2::Q
   # @param y [Integer] 中心のY座標
   # @param radius [Integer] 半径
   # @param color [[Integer, Integer, Integer]] 色
+  # @return [void]
   def draw_circle(x, y, radius, color)
     @@renderer.draw_color = color
     64.times do |i|
@@ -288,6 +298,7 @@ module SDL2::Q
   # @param x [Integer] 描画文字列の左上X座標
   # @param y [Integer] 描画文字列の左上Y座標
   # @param color [Array<Integer>] 描画色
+  # @return [void]
   def text(str, x: 0, y: 0, color: WHITE)
     surface = @@font.render_solid(str, color)
     texture = @@renderer.create_texture_from(surface)
@@ -365,7 +376,8 @@ module SDL2::Q
   #        (省略時はスクリプト名)
   # @param type [String] メッセージボックスの種類
   #        ("ERROR", "WARNING", "INFORMATION" のいずれか)
-  #
+  # @return [void]
+  # 
   # @example
   #     messagebox("こんにちは!")
   def messagebox(message, title: nil, type: "INFORMATION")
@@ -450,6 +462,14 @@ module SDL2::Q
   end
   # @!endgroup
 
+  # @!group Window
+
+  # TODO:
+  # set_title
+  # resize_window
+  
+  # @!endgroup
+  
   class CellDefinition
     def initialize(texture, cellwidth, cellheight)
       @cellwidth = cellwidth
