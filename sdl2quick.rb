@@ -15,7 +15,6 @@ module SDL2::Q
                                    640, 480, 0)
     @@renderer = @@window.create_renderer(-1, 0)
     @@fpskeeper = FPSKeeper.new(30)
-    @@title = title
     
     @@textures = Hash.new
     @@cell_definitions = Hash.new
@@ -485,7 +484,7 @@ module SDL2::Q
            when "ERROR"; SDL2::MessageBox::ERROR
            when "WARNING"; SDL2::MessageBox::ERROR
            end
-    title ||= @@title
+    title ||= @@window.title
     SDL2::MessageBox.show_simple_box(flag, title, message, nil)
   end
 
@@ -563,8 +562,15 @@ module SDL2::Q
 
   # @!group Window
 
+  # ウィンドウタイトルを変更します。
+  #
+  # @param title [String] 新たなタイトル
+  # @return [void]
+  def set_title(title)
+    @@window.title = title
+  end
+  
   # TODO:
-  # set_title
   # resize_window
   
   # @!endgroup
