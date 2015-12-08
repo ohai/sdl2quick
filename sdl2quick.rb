@@ -47,6 +47,8 @@ module SDL2::Q
 
   FONT_PATH = File.join(__dir__, "VL-Gothic-Regular.ttf")
   private_constant :FONT_PATH
+
+  # @!group Main Loop
   
   # メインループ。
   #
@@ -89,6 +91,7 @@ module SDL2::Q
     end
   end
 
+  # @!endgroup
   # @!group Window drawing
   
   # ウィンドウを黒でクリアします。
@@ -358,7 +361,7 @@ module SDL2::Q
 
   # @!endgroup
   
-  # @!group Input and Events
+  # @!group Keyboard Input
 
   # 指定したキーが押し下げられた時に true を返します。
   #
@@ -399,6 +402,9 @@ module SDL2::Q
     SDL2::Key.pressed?(SDL2::Key::Scan.from_name(keyname))
   end
 
+  # @!endgroup
+  # @!group Joystick Input
+  
   # 繋っているジョイスティックの数を返します。
   #
   # @note プログラム起動中にジョイスティックを抜き差ししないでください。
@@ -515,6 +521,9 @@ module SDL2::Q
     @@joybutton_down.member?([id, button])
   end
 
+  # @!endgroup
+  # @!group Mouse Input
+  
   # マウスカーソルの X 座標を返します。
   #
   # ウィンドウ上の相対座標を返します。
