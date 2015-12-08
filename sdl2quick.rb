@@ -2,6 +2,10 @@
 require 'sdl2'
 require 'set'
 
+# このライブラリの名前空間のためのモジュール
+# 
+# このモジュールがグローバルに inlcude されているためこのモジュールのモジュール関数が
+# グローバルに定義された状態になる。
 module SDL2::Q
   module_function
 
@@ -20,8 +24,10 @@ module SDL2::Q
     @@cell_definitions = Hash.new
 
     @@keydown = Set.new
+    @@keyup = Set.new
     @@joysticks = nil
     @@joybutton_down = Set.new
+    @@joybutton_up = Set.new
     @@mouse_state = SDL2::Mouse.state
     @@mousebutton_clicked = Set.new
     @@mousebutton_doubleclicked = Set.new
@@ -52,7 +58,9 @@ module SDL2::Q
     
     loop do
       @@keydown.clear
+      @@keyup.clear
       @@joybutton_down.clear
+      @@joybutton_up.clear
       @@mousebutton_clicked.clear
       @@mousebutton_released.clear
       while event = SDL2::Event.poll
@@ -61,8 +69,12 @@ module SDL2::Q
           exit
         when SDL2::Event::KeyDown
           @@keydown.add(event.sym)
+        when SDL2::Event::KeyUp
+          @@keyup.add(event.sym)
         when SDL2::Event::JoyButtonDown
           @@joybutton_down.add([event.which, event.button])
+        when SDL2::Event::JoyButtonUp
+          @@joybutton_up.add([event.which, event.button])
         when SDL2::Event::MouseButtonDown
           @@mousebutton_clicked.add(event.button)
           @@mousebutton_doubleclicked.add(event.button) if event.clicks == 2
@@ -356,10 +368,27 @@ module SDL2::Q
   #
   # @example
   #     keydown?("X")
+  #     
+  # @see .keyup?
+  # @see .keypressed?
   def keydown?(keyname)
     @@keydown.member?(SDL2::Key.keycode_from_name(keyname))
   end
-
+  
+  # 指定したキーが離された時に true を返します。
+  #
+  # この関数はキーリピートが有効です(つまりキーを押しっぱなしにすると
+  # リピート間隔ごとにこの関数は true を返します)。
+  # @param keyname [String] キーの名前("ESCAPE"、"F" など)
+  #
+  # @example
+  #     keyup?("X")
+  #
+  # @see .keydown?
+  def keyup?(keyname)
+    @@keyup.member?(SDL2::Key.keycode_from_name(keyname))
+  end
+  
   # 指定したキーが押し下げられた状態であるならば true を返します。
   #
   # @param keyname [String] キーの名前("ESCAPE"、"F" など)
@@ -465,10 +494,20 @@ module SDL2::Q
     @@joysticks[id].button(button)
   end
 
-  # ジョイスティックのボタンがが押し下げられた時に true を返します。
+  # ジョイスティックのボタンが押し下げられた時に true を返します。
   #
   # この関数は {.required_joysticks} を呼びだした後にしか使えません。
   # この関数は {.joybutton_pressed?} と異なり押し下げられたフレームのみ true を返します。
+  # 
+  # @param button [Integer] ボタンのID、0から「ジョイステイック上にあるボタン数-1」までの整数
+  # @param id [Integer] ジョイスティクID、0から「接続しているジョイスティック数-1」までの整数
+  def joybutton_down?(button, id: 0)
+    @@joybutton_down.member?([id, button])
+  end
+
+  # ジョイスティックのボタンが離された時に true を返します。
+  #
+  # この関数は {.required_joysticks} を呼びだした後にしか使えません。
   # 
   # @param button [Integer] ボタンのID、0から「ジョイステイック上にあるボタン数-1」までの整数
   # @param id [Integer] ジョイスティクID、0から「接続しているジョイスティック数-1」までの整数
