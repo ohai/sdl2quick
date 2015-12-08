@@ -22,6 +22,10 @@ module SDL2::Q
     @@keydown = Set.new
     @@joysticks = nil
     @@joybutton_down = Set.new
+    @@mouse_state = SDL2::Mouse.state
+    @@mousebutton_clicked = Set.new
+    @@mousebutton_doubleclicked = Set.new
+    @@mousebutton_released = Set.new
     
     SDL2::TTF.init
     @@fonts = Hash.new
@@ -42,12 +46,15 @@ module SDL2::Q
   #
   # ブロック付きで呼び出すと毎ループごとにそのブロックが呼びだされます。
   # @return [void]
+  # @todo support keyup, joybuttonup
   def mainloop
     @@fpskeeper.reset
     
     loop do
       @@keydown.clear
       @@joybutton_down.clear
+      @@mousebutton_clicked.clear
+      @@mousebutton_released.clear
       while event = SDL2::Event.poll
         case event
         when SDL2::Event::Quit
@@ -56,8 +63,14 @@ module SDL2::Q
           @@keydown.add(event.sym)
         when SDL2::Event::JoyButtonDown
           @@joybutton_down.add([event.which, event.button])
+        when SDL2::Event::MouseButtonDown
+          @@mousebutton_clicked.add(event.button)
+          @@mousebutton_doubleclicked.add(event.button) if event.clicks == 2
+        when SDL2::Event::MouseButtonUp
+          @@mousebutton_released.add(event.button)
         end
       end
+      @@mouse_state = SDL2::Mouse.state
       
       yield if block_given?
       @@fpskeeper.wait_frame { @@renderer.present }
@@ -463,8 +476,64 @@ module SDL2::Q
     @@joybutton_down.member?([id, button])
   end
 
-  # @!endgroup
+  # マウスカーソルの X 座標を返します。
+  #
+  # ウィンドウ上の相対座標を返します。
+  # 
+  # @return [Integer] マウスカーソルの X 座標
+  def mouse_x
+    @@mouse_state.x
+  end
+  
+  # マウスカーソルの Y 座標を返します。
+  #
+  # ウィンドウ上の相対座標を返します。
+  # 
+  # @return [Integer] マウスカーソルの Y 座標
+  def mouse_y
+    @@mouse_state.y
+  end
 
+  # indexで指定したマウスのボタンがクリックされた(押し下げられた)ときに
+  # true を返します。
+  #
+  # 3ボタンマウスの場合 index は 1, 2, 3 が左、中、右、ボタンにそれぞれ対応します。
+  #
+  # ダブルクリックした場合はこの関数と {.mousebutton_doubleclick?} の両方が true を返します。
+  #
+  # @param index [Integer] 入力をチェックするボタンのインデックス
+  # @see .mousebutton_doubleclick?
+  def mousebutton_click?(index)
+    @@mousebutton_clicked.member?(index)
+  end
+ 
+  # indexで指定したマウスのボタンがダブルクリックされた(押し下げられた)ときに
+  # true を返します。
+  #
+  # 3ボタンマウスの場合 index は 1, 2, 3 が左、中、右、ボタンにそれぞれ対応します。
+  # @param index [Integer] 入力をチェックするボタンのインデックス
+  # @see .mousebutton_click?
+  def mousebutton_doubleclick?(index)
+    @@mousebutton_doubleclicked.member?(index)
+  end
+
+  # indexで指定したマウスのボタンが離されたときに true を返します。
+  #
+  # @param index [Integer] 入力をチェックするボタンのインデックス
+  def mousebutton_released?(index)
+    @@mousebutton_released.member?(index)
+  end
+
+  # indexで指定したマウスのボタンが押し下げられた状態であるときに true を返します。
+  #
+  # @param index [Integer] 入力をチェックするボタンのインデックス
+  def mousebutton_pressed?(index)
+    @@mouse_state.pressed?(index)
+  end
+
+  
+  # @!endgroup
+  
   # @!group Message box
 
   # モーダルメッセージボックスを表示します。
